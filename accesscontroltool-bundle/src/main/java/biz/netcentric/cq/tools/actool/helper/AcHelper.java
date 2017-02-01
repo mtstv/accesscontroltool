@@ -94,6 +94,7 @@ public class AcHelper {
         history.addVerboseMessage(msg);
 
         // loop through all nodes from config
+        int i = 0;
         for (String path : paths) {
 
             Set<AceBean> aceBeanSetFromConfig = pathBasedAceMapFromConfig
@@ -128,6 +129,13 @@ public class AcHelper {
                 history.addVerboseMessage(message);
             }
             writeAcBeansToRepository(session, history, orderedAceBeanSetFromConfig);
+            
+            // save for every 1000 nodes
+            if (i % 1000 == 0){
+                session.save();
+                history.addMessage("Persisted changes of ACLs installation after " + i + " nodes.");
+            }
+            i++;
         }
     }
 

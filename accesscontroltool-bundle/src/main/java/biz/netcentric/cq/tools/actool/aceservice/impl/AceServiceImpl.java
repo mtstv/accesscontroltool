@@ -183,6 +183,8 @@ public class AceServiceImpl implements AceService {
                 }
             }
         }
+        session.save();
+        history.addMessage("Persisted changes of removed ACLs");
     }
 
     private void installAces(
@@ -233,6 +235,7 @@ public class AceServiceImpl implements AceService {
                     authorizableInstallationSession, history,
                     authorizableInstallationHistory);
             authorizableInstallationSession.save();
+            history.addMessage("Persisted changes of installation of Authorizables.");
         } catch (Exception e) {
             throw e;
         } finally {
