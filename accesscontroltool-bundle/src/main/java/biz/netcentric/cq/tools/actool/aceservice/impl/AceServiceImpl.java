@@ -283,6 +283,7 @@ public class AceServiceImpl implements AceService {
             LOG.error("Exception in AceServiceImpl: {}", e);
             history.addError(e.toString());
 
+            /* NO ROLLBACK
             for (AuthorizableInstallationHistory authorizableInstallationHistory : authorizableInstallationHistorySet) {
                 try {
                     String message = "performing authorizable installation rollback(s)";
@@ -294,6 +295,7 @@ public class AceServiceImpl implements AceService {
                     LOG.error("Exception: ", e1);
                 }
             }
+            */
         } finally {
             session.logout();
         }
