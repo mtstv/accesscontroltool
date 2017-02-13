@@ -184,6 +184,8 @@ public class AceServiceImpl implements AceService {
                 }
             }
         }
+        session.save();
+        history.addMessage("Persisted changes of removed ACLs");
     }
 
     private void installAces(
@@ -242,6 +244,7 @@ public class AceServiceImpl implements AceService {
                     authorizableInstallationSession, history,
                     authorizableInstallationHistory);
             authorizableInstallationSession.save();
+            history.addMessage("Persisted changes of installation of Authorizables.");
         } catch (Exception e) {
             throw e;
         } finally {
@@ -337,6 +340,7 @@ public class AceServiceImpl implements AceService {
             LOG.error("Exception in AceServiceImpl: {}", e);
             history.addError(e.toString());
 
+            /* NO ROLLBACK
             for (AuthorizableInstallationHistory authorizableInstallationHistory : authorizableInstallationHistorySet) {
                 try {
                     String message = "performing authorizable installation rollback(s)";
@@ -348,6 +352,7 @@ public class AceServiceImpl implements AceService {
                     LOG.error("Exception: ", e1);
                 }
             }
+            */
         } finally {
             session.logout();
         }
