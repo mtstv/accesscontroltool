@@ -67,8 +67,59 @@ public class AceBeanInstallerImpl implements AceBeanInstaller {
         final String msg = "Found " + paths.size() + "  paths in config";
         LOG.debug(msg);
         history.addVerboseMessage(msg);
+        
+        /******************************************************************************
+         * START: FIX TO REPAIRE UNSYNC STATE OF EXISTING REP:POLICY NODES
+         * DELETE ALL rep:policy Nodes at first
+         ******************************************************************************/
+        int i = 1;
+        for (String path : paths) {
 
+            final Set<AceBean> aceBeanSetFromConfig = pathBasedAceMapFromConfig
+                    .get(path); // Set which holds the AceBeans of the current path in configuration
+    
+            // check if the path even exists
+            final boolean pathExits = AccessControlUtils.getModifiableAcl(session.getAccessControlManager(), path) != null;
+            if (!pathExits) {
+                continue;
+            }
+
+            // order entries (denies in front of allows)
+            final Set<AceBean> orderedAceBeanSetFromConfig = new TreeSet<AceBean>(
+                    new AcePermissionComparator());
+            orderedAceBeanSetFromConfig.addAll(aceBeanSetFromConfig);
+
+            LOG.info("Deleting ACLs for the {} path [{}]", i, path);
+
+            // remove ACL of that path from ACLs from repo so that after the
+            // loop has ended only paths are left which are not contained in
+            // current config
+            for (final AceBean bean : orderedAceBeanSetFromConfig) {
+                AccessControlUtils.deleteAllEntriesForAuthorizableFromACL(session,
+                        path, bean.getPrincipalName());
+                final String message = "deleted all ACEs of authorizable "
+                        + bean.getPrincipalName()
+                        + " from ACL of path: " + path;
+                LOG.debug(message);
+                history.addVerboseMessage(message);
+            }
+
+            // save for every 100 nodes
+            if (i % 100 == 0){
+                session.save();
+                LOG.info("Persist ACLs deletion after {} nodes.", i);
+            }
+            i++;
+        }
+        session.save();
+        LOG.info("Persist last ACLs deletion after {} nodes.", i-1);
+        /******************************************************************************
+         * END: FIX TO REPAIRE UNSYNC STATE OF EXISTING REP:POLICY NODES
+         * DELETE ALL rep:policy Nodes at first
+         ******************************************************************************/
+            
         // loop through all nodes from config
+        i = 1;
         for (final String path : paths) {
 
             final Set<AceBean> aceBeanSetFromConfig = pathBasedAceMapFromConfig
@@ -90,19 +141,17 @@ public class AceBeanInstallerImpl implements AceBeanInstaller {
                     new AcePermissionComparator());
             orderedAceBeanSetFromConfig.addAll(aceBeanSetFromConfig);
 
-            // remove ACL of that path from ACLs from repo so that after the
-            // loop has ended only paths are left which are not contained in
-            // current config
-            for (final AceBean bean : orderedAceBeanSetFromConfig) {
-                AccessControlUtils.deleteAllEntriesForAuthorizableFromACL(session,
-                        path, bean.getPrincipalName());
-                final String message = "deleted all ACEs of authorizable "
-                        + bean.getPrincipalName()
-                        + " from ACL of path: " + path;
-                LOG.debug(message);
-                history.addVerboseMessage(message);
-            }
+            // create ACEs contained in the config
             writeAcBeansToRepository(session, history, orderedAceBeanSetFromConfig);
+            
+            // save for every 100 nodes
+            LOG.info("Installed ACLs for the {} path [{}]", i, path);
+            if (i % 100 == 0){
+                session.save();
+                history.addMessage("Persist ACLs installation after " + i + " nodes.");
+                LOG.info("Persist ACLs installation after {} nodes.", i);
+            }
+            i++;
         }
     }
 
