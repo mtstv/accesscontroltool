@@ -140,7 +140,8 @@ public class AuthorizableCreatorServiceImpl implements
             }
 
             // move authorizable if path changed (retaining existing members)
-            handleIntermediatePath(session, authorizableConfigBean, history,
+            // get a new moved authorizable
+            authorizableToInstall = handleIntermediatePath(session, authorizableConfigBean, history,
                     authorizableInstallationHistory, userManager);
 
             mergeGroup(history, authorizableInstallationHistory,
@@ -150,12 +151,12 @@ public class AuthorizableCreatorServiceImpl implements
 
         if (authorizableConfigBean.isGroup()) {
             // this has to be added explicitly here (all other memberships are maintained isMemberOf)
-            Group installedGroup = (Group) userManager.getAuthorizable(principalId);
+            Group groupToInstall = (Group) authorizableToInstall;
             Authorizable anonymous = userManager.getAuthorizable(Constants.USER_ANONYMOUS);
             if (authorizableConfigBean.membersContainsAnonymous()) {
-                installedGroup.addMember(anonymous);
+              groupToInstall.addMember(anonymous);
             } else {
-                installedGroup.removeMember(anonymous);
+              groupToInstall.removeMember(anonymous);
             }
         }
 
@@ -208,9 +209,19 @@ public class AuthorizableCreatorServiceImpl implements
 
     }
 
-
-
-    private void handleIntermediatePath(final Session session,
+    /**
+     * Return a new Authorizable in case of removing.
+     *
+     * @param session
+     * @param principalConfigBean
+     * @param history
+     * @param authorizableInstallationHistory
+     * @param userManager
+     * @return
+     * @throws RepositoryException
+     * @throws AuthorizableCreatorException
+     */
+    private Authorizable handleIntermediatePath(final Session session,
             AuthorizableConfigBean principalConfigBean,
             AcInstallationHistoryPojo history,
             AuthorizableInstallationHistory authorizableInstallationHistory,
@@ -274,9 +285,11 @@ public class AuthorizableCreatorServiceImpl implements
                     + (newAuthorizable.isGroup() ? "(retained " + countMovedMembersOfGroup + " members of group)" : ""));
             history.addMessage(message.toString());
             LOG.info(message.toString());
-
+            
+            return newAuthorizable;
+        } else {
+          return existingAuthorizable;
         }
-
     }
 
     /** // deletes old intermediatePath parent node and all empty parent nodes up to /home/groups or /home/users
